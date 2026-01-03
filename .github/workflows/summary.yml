@@ -59,7 +59,6 @@ jobs:
             - Relevant parts of the repo (methods, files, etc.)
             - Mention collaborators if helpful
             - Reference README or docs if relevant
-          output: response
 
       # 4️⃣ Comment on the issue with AI summary
       - name: Comment with AI summary
