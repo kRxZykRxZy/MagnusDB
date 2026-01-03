@@ -1,0 +1,74 @@
+name: Summarize new issues
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      # 1️⃣ Checkout the repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Gather repo metadata
+      - name: Gather repo info
+        id: repo_info
+        run: |
+          echo "REPO_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_ENV
+          echo "REPO_OWNER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)" >> $GITHUB_ENV
+          # Get README content if exists
+          if [ -f README.md ]; then
+            README_CONTENT=$(cat README.md | head -c 5000) # limit size
+            echo "README_CONTENT<<EOF" >> $GITHUB_ENV
+            echo "$README_CONTENT" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+          fi
+          # List main source files
+          SRC_FILES=$(find src -type f -name "*.js" -o -name "*.ts" | head -n 20)
+          echo "SRC_FILES<<EOF" >> $GITHUB_ENV
+          echo "$SRC_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # 3️⃣ Run AI inference on the issue
+      - name: Run AI inference
+        id: inference
+        uses: actions/ai-inference@v1
+        with:
+          prompt: |
+            You are an AI assistant for a JavaScript database project called MagnusDB.
+            Use the following repository context to respond intelligently to the issue comment:
+            
+            Repository Name: ${{ env.REPO_NAME }}
+            Owner: ${{ env.REPO_OWNER }}
+            README (first 5000 chars): ${{ env.README_CONTENT }}
+            Source Files (list or sample): ${{ env.SRC_FILES }}
+            
+            Issue Title: ${{ github.event.issue.title }}
+            Issue Body: ${{ github.event.issue.body }}
+            
+            Include:
+            - Suggestions for the issue based on the repo
+            - Relevant parts of the repo (methods, files, etc.)
+            - Mention collaborators if helpful
+            - Reference README or docs if relevant
+          model: gpt-4
+          temperature: 0.3
+          max_output_tokens: 600
+          output: response
+
+      # 4️⃣ Comment on the issue with AI summary
+      - name: Comment with AI summary
+        run: |
+          gh issue comment $ISSUE_NUMBER --body "$RESPONSE"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RESPONSE: ${{ steps.inference.outputs.response }}
