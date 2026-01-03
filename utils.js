@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { dbPath } from "./config.js";
-import { encode, decode } from "@msgpack/msgpack";
+import { encode, decode } from "msgpack";
 
 // Paths
 export function getCollectionFolder(collection) {
