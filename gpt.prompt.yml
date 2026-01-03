@@ -1,0 +1,8 @@
+messages:
+  - role: system
+    content: >-
+      You are a manager for MagnusDB, a javascript database module that can support GiBs of data per second, you are just a helpful ai assistant.
+  - role: user
+model: openai/gpt-4o
+modelParameters:
+  temperature: 0.2
