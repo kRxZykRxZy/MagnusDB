@@ -1,0 +1,96 @@
+name: Add Apache 2.0 Copyright Headers
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  headers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add copyright headers
+        shell: bash
+        run: |
+          set -e
+
+          YEAR=$(date +"%Y")
+          OWNER="MagnusDB"
+
+          has_notice() {
+            grep -q "Copyright .* ${OWNER}" "$1"
+          }
+
+          add_line_comment() {
+            local prefix="$1"
+            local file="$2"
+
+            {
+              echo "${prefix} Copyright ${YEAR} ${OWNER}"
+              echo "${prefix} Licensed under the Apache License, Version 2.0"
+              echo
+              cat "$file"
+            } > "$file.tmp" && mv "$file.tmp" "$file"
+          }
+
+          add_block_comment() {
+            local open="$1"
+            local close="$2"
+            local file="$3"
+
+            {
+              echo "${open}"
+              echo " Copyright ${YEAR} ${OWNER}"
+              echo " Licensed under the Apache License, Version 2.0"
+              echo "${close}"
+              echo
+              cat "$file"
+            } > "$file.tmp" && mv "$file.tmp" "$file"
+          }
+
+          shopt -s globstar
+
+          for file in src/**/*; do
+            [ -f "$file" ] || continue
+            has_notice "$file" && continue
+
+            case "$file" in
+              *.js|*.ts|*.java|*.c|*.cpp|*.go|*.rs|*.jsx|*.ts|*.tsx)
+                add_line_comment "//" "$file"
+                ;;
+              *.py|*.sh|*.rb|*.yml|*.yaml)
+                add_line_comment "#" "$file"
+                ;;
+              *.lua)
+                add_line_comment "--" "$file"
+                ;;
+              *.css)
+                add_block_comment "/*" "*/" "$file"
+                ;;
+              *.html|*.xml)
+                add_block_comment "<!--" "-->" "$file"
+                ;;
+              *)
+                echo "Skipping unsupported file: $file"
+                ;;
+            esac
+          done
+
+      - name: Commit changes
+        run: |
+          if git status --porcelain | grep .; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add src
+            git commit -m "chore: add Apache 2.0 copyright headers"
+            git push
+          else
+            echo "No changes to commit"
+          fi
