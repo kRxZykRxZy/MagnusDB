@@ -1,3 +1,6 @@
+// Copyright 2026 MagnusDB
+// Licensed under the Apache License, Version 2.0
+
 // Object.insert(Collection, Record);
 import { readIndex, writeIndex, getPageFile, readPage, writePage } from "../../utils.js";
 import { options } from "../../config.js";
