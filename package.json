@@ -4,6 +4,6 @@
   "type": "module",
   "main": "index.js",
   "dependencies": {
-    "@msgpack/msgpack": "^2.9.0"
+    "msgpack": "^1.0.3"
   }
 }
