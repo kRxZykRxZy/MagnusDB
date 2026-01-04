@@ -1,36 +1,33 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
-
-name: Node.js Package
+name: Publish Package
 
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 permissions:
+  id-token: write  # Required for OIDC
   contents: read
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm test
 
-  publish-npm:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org/
-      - run: npm ci
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Authenticate npm via GitHub OIDC
+      - name: Authenticate npm via OIDC
+        run: |
+          echo "Fetching OIDC token..."
+          TOKEN=$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL?audience=registry.npmjs.org" \
+            | jq -r .value)
+          echo "//registry.npmjs.org/:_authToken=$TOKEN" > ~/.npmrc
+
+      - name: Publish
+        run: sleep 3 && npm publish
