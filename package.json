@@ -1,9 +1,10 @@
 {
   "name": "magnusdb",
-  "version": "1.24.6",
+  "version": "1.24.8",
   "type": "module",
   "main": "index.js",
   "dependencies": {
+    "magnusdb": "^1.24.8",
     "msgpack": "^1.0.3"
   }
 }

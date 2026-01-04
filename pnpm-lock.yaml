@@ -8,11 +8,17 @@ importers:
 
   .:
     dependencies:
+      magnusdb:
+        specifier: ^1.24.8
+        version: 1.24.8
       msgpack:
         specifier: ^1.0.3
         version: 1.0.3
 
 packages:
+
+  magnusdb@1.24.8:
+    resolution: {integrity: sha512-5bwr6Ga9h6UpWu1DnXoG3r7fwJsoGXVDVCNHv3eZ/Du86sWONakSLgaSp0vTtqK8kBwX2bksJCnqFM+5CUgYaw==}
 
   msgpack@1.0.3:
     resolution: {integrity: sha512-FX88+Pexuh+UItdqg68WhNPGPhqs57RlXAYyXNZ8eTQC/Tx5lzeIoxTxA2qAd7qU5a/crON5F0ADf4l6k2b7Jw==}
@@ -23,6 +29,10 @@ packages:
     resolution: {integrity: sha512-Vpf9qnVW1RaDkoNKFUvfxqAbtI8ncb8OJlqZ9wwpXzWPEsvsB1nvdUi6oYrHIkQ1Y/tMDnr1h4nczS0VB9Xykg==}
 
 snapshots:
+
+  magnusdb@1.24.8:
+    dependencies:
+      msgpack: 1.0.3
 
   msgpack@1.0.3:
     dependencies:
