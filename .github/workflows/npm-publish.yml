@@ -30,4 +30,4 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=$TOKEN" > ~/.npmrc
 
       - name: Publish
-        run: npm publish
+        run: sleep 3 && npm publish
