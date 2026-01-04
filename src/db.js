@@ -1,3 +1,6 @@
+// Copyright 2026 MagnusDB
+// Licensed under the Apache License, Version 2.0
+
 import fs from "fs";
 import path from "path";
 
