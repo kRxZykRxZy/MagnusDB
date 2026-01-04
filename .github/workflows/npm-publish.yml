@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: CXXFLAGS="--std=c++17" npm install
 
   publish-npm:
     needs: build
