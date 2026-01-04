@@ -1,45 +1,77 @@
 // Copyright 2026 MagnusDB
 // Licensed under the Apache License, Version 2.0
 
-// Object.insert(Collection, Record);
+// Object.insert(collection, record)
 import { readIndex, writeIndex, getPageFile, readPage, writePage } from "../../utils.js";
 import { options } from "../../config.js";
 import { Worker } from "worker_threads";
 import path from "path";
 
-export default async function(collection, record) {
-  let index = await readIndex(collection);
+// Centralized logger
+function log(...args) {
+  console.log(`[MagnusDB][Insert]`, ...args);
+}
 
-  // Determine last page
-  let lastPageNum = index.pages.length ? index.pages.length - 1 : 0;
-  let pageRecords = [];
+// Insert a record into a collection
+export default async function insertRecord(collection, record) {
+  try {
+    log(`Starting insert into collection: "${collection}"`);
 
-  if (index.pages.length) {
-    pageRecords = await readPage(getPageFile(collection, lastPageNum));
+    // Load or initialize index
+    let index = await readIndex(collection);
+    if (!index.pages) index.pages = [];
+    index.totalRecords ||= 0;
+
+    // Determine last page
+    let lastPageNum = index.pages.length ? index.pages.length - 1 : 0;
+    let pageRecords = [];
+
+    if (index.pages.length) {
+      pageRecords = await readPage(getPageFile(collection, lastPageNum));
+      log(`Loaded page ${lastPageNum} with ${pageRecords.length} records`);
+    }
+
+    // If page full → create new page
+    if (pageRecords.length >= options.pageSize) {
+      lastPageNum++;
+      pageRecords = [];
+      log(`Page full, creating new page ${lastPageNum}`);
+    }
+
+    // Append record
+    pageRecords.push(record);
+    log(`Appending record. Page ${lastPageNum} now has ${pageRecords.length} records`);
+
+    const pageFile = getPageFile(collection, lastPageNum);
+
+    // Write page (multi-threaded if enabled)
+    if (options.mode === "multi" && options.threads > 1) {
+      log(`Writing page ${lastPageNum} in worker thread`);
+      const workerPath = path.join(new URL('.', import.meta.url).pathname, "../../worker.js");
+      const worker = new Worker(workerPath, {
+        workerData: { pageFile, records: pageRecords }
+      });
+
+      worker.on("error", (err) => log(`Worker error:`, err));
+      worker.on("exit", (code) => {
+        if (code !== 0) log(`Worker stopped with exit code ${code}`);
+        else log(`Worker finished writing page ${lastPageNum}`);
+      });
+
+    } else {
+      log(`Writing page ${lastPageNum} in main thread`);
+      await writePage(pageFile, pageRecords);
+      log(`Page ${lastPageNum} written successfully`);
+    }
+
+    // Update index
+    index.pages[lastPageNum] = pageRecords.length;
+    index.totalRecords++;
+    await writeIndex(collection, index);
+    log(`Index updated. Total records: ${index.totalRecords}`);
+
+  } catch (err) {
+    console.error(`[MagnusDB][Insert][Error] Failed to insert record into "${collection}":`, err);
+    throw err; // rethrow so caller knows
   }
-
-  // If page full → new page
-  if (pageRecords.length >= options.pageSize) {
-    lastPageNum++;
-    pageRecords = [];
-  }
-
-  pageRecords.push(record);
-
-  // Multi-threaded write
-  const pageFile = getPageFile(collection, lastPageNum);
-  if (options.mode === "multi" && options.threads > 1) {
-    const worker = new Worker(path.join(new URL('.', import.meta.url).pathname, "../../worker.js"), {
-      workerData: { pageFile, records: pageRecords }
-    });
-    worker.on("error", console.error);
-  } else {
-    await writePage(pageFile, pageRecords);
-  }
-
-  // Update index
-  if (!index.pages[lastPageNum]) index.pages[lastPageNum] = 0;
-  index.pages[lastPageNum] = pageRecords.length;
-  index.totalRecords = (index.totalRecords || 0) + 1;
-  await writeIndex(collection, index);
-};
+}
